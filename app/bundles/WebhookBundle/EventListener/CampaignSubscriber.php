@@ -69,13 +69,24 @@ class CampaignSubscriber extends CommonSubscriber
             $data   = !empty($config['additional_data']['list']) ? $config['additional_data']['list'] : '';
             $data   = array_flip(AbstractFormFieldHelper::parseList($data));
             // replace contacts tokens
-            foreach ($data as $key => $value) {
-                $data[$key] = urldecode(TokenHelper::findLeadTokens($value, $lead->getProfileFields(), true));
-            }
             $headers = !empty($config['headers']['list']) ? $config['headers']['list'] : '';
             $headers = array_flip(AbstractFormFieldHelper::parseList($headers));
+            $isjson = false;
             foreach ($headers as $key => $value) {
+                if($key=="content-type" && $value=="application/json"){
+                    $isjson=true;
+                }
                 $headers[$key] = urldecode(TokenHelper::findLeadTokens($value, $lead->getProfileFields(), true));
+            }
+            foreach ($data as $key => $value) {
+                if($isjson==false){
+                   $data[$key] = urldecode(TokenHelper::findLeadTokens($value, $lead->getProfileFields(), true));
+                }else{
+                   $data[$key] = TokenHelper::findLeadTokens($value, $lead->getProfileFields(), true);
+                }
+            }
+            if($isjson){
+                $data = json_encode($data);
             }
             $timeout = $config['timeout'];
 
@@ -119,6 +130,7 @@ class CampaignSubscriber extends CommonSubscriber
 
         return $event->setFailed($this->translator->trans('Error code').': '.$response->code);
     }
+
 
     /**
      * Add event triggers and actions.
